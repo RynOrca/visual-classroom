@@ -1,6 +1,7 @@
 import apiClient from './client'
 import {
   Chapter,
+  ConversationNote,
   KnowledgePoint,
   QuizQuestion,
   QuizSession,
@@ -61,6 +62,17 @@ export const virtualClassroomApi = {
   },
   markMistakeMastered: async (id: string, mastered: boolean) => {
     const response = await apiClient.put<Mistake>(`/virtual-classroom/mistakes/${id}`, { mastered })
+    return response.data
+  },
+}
+
+export const conversationApi = {
+  list: async (params?: { source_id?: string; notebook_id?: string; chat_session_id?: string }) => {
+    const response = await apiClient.get<ConversationNote[]>('/virtual-classroom/conversation-notes', { params })
+    return response.data
+  },
+  organize: async (data: { chat_session_id: string }) => {
+    const response = await apiClient.post<ConversationNote[]>('/virtual-classroom/conversation-notes/organize', data)
     return response.data
   },
 }

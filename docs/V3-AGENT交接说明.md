@@ -85,6 +85,7 @@ cd /d/Code/Working-on-it/v3-visualclassroom
 | V3 方案 | `V3-虚拟课堂重构方案.md` |
 | 虚拟课堂后端模块 | `open_notebook/virtual_classroom/` |
 | 虚拟课堂 API | `api/routers/virtual_classroom*.py` |
+| 对话整理 API | `api/routers/virtual_classroom_conversation.py` |
 | 前端页面 | `frontend/src/app/(dashboard)/virtual-classroom/page.tsx` |
 | 前端 API | `frontend/src/lib/api/virtual-classroom.ts` |
 | 前端类型 | `frontend/src/lib/types/virtual-classroom.ts` |
@@ -106,9 +107,11 @@ cd /d/Code/Working-on-it/v3-visualclassroom
 3. **知识地图可视化**（部分完成）
    - 已升级为 React Flow 节点图：章节/stage 节点 + `bridgeToNext` 连线 + 可缩放/拖拽/小地图
    - 待做：L2 框架级展开、L3 错题/提问热力节点、点击节点跳回课件/对话
-4. **对话整理 Agent**
-   - 把问答按知识点/问题类型整理成知识卡片
-   - 写入 `conversation_note`
+4. **对话整理 Agent**（已完成基础版）
+   - `POST /api/virtual-classroom/conversation-notes/organize`：读取会话 Q&A，LLM 整理为知识卡片并写入 `conversation_note`
+   - `GET /api/virtual-classroom/conversation-notes`：列出知识卡片
+   - 前端“对话整理”区域：选择课件会话 → 整理 → 查看卡片
+   - 待做：自动在问答结束后触发整理、更精确的知识点关联
 5. **复习路线**
    - 基于知识地图生成“俯瞰 → 下钻”复习流程
 

@@ -7,10 +7,12 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { useNotebooks } from '@/lib/hooks/use-notebooks'
 import { useNotebookSources } from '@/lib/hooks/use-sources'
-import { virtualClassroomApi, knowledgeMapApi } from '@/lib/api/virtual-classroom'
+import { sourceChatApi } from '@/lib/api/source-chat'
+import { virtualClassroomApi, knowledgeMapApi, conversationApi } from '@/lib/api/virtual-classroom'
 import type { KnowledgeMapData } from '@/lib/api/virtual-classroom'
 import {
   Chapter,
+  ConversationNote,
   KnowledgePoint,
   Mistake,
   QuizQuestion,
@@ -28,6 +30,10 @@ export default function VirtualClassroomPage() {
   const [knowledgeMap, setKnowledgeMap] = useState<KnowledgeMapData | null>(null)
   const [generatingMap, setGeneratingMap] = useState(false)
   const [mistakes, setMistakes] = useState<Mistake[]>([])
+  const [chatSessions, setChatSessions] = useState<{ id: string; title: string }[]>([])
+  const [selectedChatSessionId, setSelectedChatSessionId] = useState('')
+  const [conversationNotes, setConversationNotes] = useState<ConversationNote[]>([])
+  const [organizingNotes, setOrganizingNotes] = useState(false)
 
   const [extractingChapters, setExtractingChapters] = useState(false)
   const [extractingKps, setExtractingKps] = useState(false)
@@ -54,12 +60,19 @@ export default function VirtualClassroomPage() {
       virtualClassroomApi.listChapters({ source_id: sourceId, notebook_id: notebookId || undefined }),
       virtualClassroomApi.listKnowledgePoints({ source_id: sourceId, notebook_id: notebookId || undefined }),
       virtualClassroomApi.listMistakes({ source_id: sourceId, notebook_id: notebookId || undefined }),
+      sourceChatApi.listSessions(sourceId).catch(() => []),
+      conversationApi.list({ source_id: sourceId, notebook_id: notebookId || undefined }).catch(() => []),
     ])
-      .then(([chs, kps, mis]) => {
+      .then(([chs, kps, mis, sessions, notes]) => {
         if (cancelled) return
         setChapters(chs)
         setKnowledgePoints(kps)
         setMistakes(mis)
+        setChatSessions(sessions)
+        setConversationNotes(notes)
+        setSelectedChatSessionId((current) =>
+          current && sessions.some((s) => s.id === current) ? current : (sessions[0]?.id ?? '')
+        )
       })
       .catch(() => {})
     return () => {
@@ -112,6 +125,19 @@ export default function VirtualClassroomPage() {
       console.error(error)
     } finally {
       setGeneratingMap(false)
+    }
+  }
+
+  const handleOrganizeConversation = async () => {
+    if (!selectedChatSessionId) return
+    setOrganizingNotes(true)
+    try {
+      const notes = await conversationApi.organize({ chat_session_id: selectedChatSessionId })
+      setConversationNotes(notes)
+    } catch (error) {
+      console.error(error)
+    } finally {
+      setOrganizingNotes(false)
     }
   }
 
@@ -206,6 +232,9 @@ export default function VirtualClassroomPage() {
                   setMistakes([])
                   setQuizQuestions([])
                   setQuizResult(null)
+                  setChatSessions([])
+                  setSelectedChatSessionId('')
+                  setConversationNotes([])
                 }}
               >
                 {notebooks?.map((n) => (
@@ -221,7 +250,11 @@ export default function VirtualClassroomPage() {
                 id="source"
                 className="w-full rounded-md border bg-background px-3 py-2 text-sm"
                 value={sourceId}
-                onChange={(e) => setSourceId(e.target.value)}
+                onChange={(e) => {
+                  setSourceId(e.target.value)
+                  setSelectedChatSessionId('')
+                  setConversationNotes([])
+                }}
               >
                 <option value="">请选择课件</option>
                 {sources.map((s) => (
@@ -262,6 +295,60 @@ export default function VirtualClassroomPage() {
                   <p className="text-sm text-muted-foreground">暂无知识地图，先生成章节/知识点后再生成地图。</p>
                 )}
               </div>
+            </div>
+          )}
+
+
+          {/* Conversation Notes */}
+          {sourceId && (
+            <div className="rounded-lg border p-4">
+              <div className="flex items-center justify-between">
+                <h2 className="font-semibold">对话整理</h2>
+                <Button
+                  onClick={handleOrganizeConversation}
+                  disabled={organizingNotes || !selectedChatSessionId}
+                  variant="outline"
+                  size="sm"
+                >
+                  {organizingNotes ? '整理中...' : '整理为知识卡片'}
+                </Button>
+              </div>
+              <div className="mt-3 space-y-2">
+                <Label htmlFor="chat-session">对话会话</Label>
+                <select
+                  id="chat-session"
+                  className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                  value={selectedChatSessionId}
+                  onChange={(e) => setSelectedChatSessionId(e.target.value)}
+                >
+                  <option value="">请选择会话</option>
+                  {chatSessions.map((session) => (
+                    <option key={session.id} value={session.id}>
+                      {session.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {conversationNotes.length > 0 ? (
+                <ul className="mt-3 space-y-2">
+                  {conversationNotes.map((note) => (
+                    <li key={note.id} className="rounded-md border p-3 text-sm">
+                      <div className="font-medium">{note.question}</div>
+                      <p className="text-muted-foreground mt-1">{note.answer}</p>
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        <span className="rounded-full bg-muted px-2 py-0.5 text-xs">{note.note_type}</span>
+                        {note.tags.map((tag) => (
+                          <span key={tag} className="rounded-full bg-muted px-2 py-0.5 text-xs">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-muted-foreground text-sm mt-2">暂无对话笔记，选择会话后点击“整理为知识卡片”。</p>
+              )}
             </div>
           )}
 

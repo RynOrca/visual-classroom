@@ -72,3 +72,16 @@ export interface Mistake {
   mastered_at?: string | null
   tags: string[]
 }
+
+export interface ConversationNote {
+  id: string
+  chat_session?: string | null
+  source?: string | null
+  notebook?: string | null
+  knowledge_point?: string | null
+  question: string
+  answer: string
+  note_type: string
+  tags: string[]
+  created?: string | null
+}
