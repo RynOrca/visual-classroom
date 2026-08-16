@@ -1,0 +1,12 @@
+-- Migration 26: V3 virtual classroom review route
+
+DEFINE TABLE IF NOT EXISTS review_route SCHEMAFULL;
+DEFINE FIELD IF NOT EXISTS notebook ON review_route TYPE option<record<notebook>>;
+DEFINE FIELD IF NOT EXISTS source ON review_route TYPE option<record<source>>;
+DEFINE FIELD IF NOT EXISTS data ON review_route TYPE string;
+DEFINE FIELD IF NOT EXISTS status ON review_route TYPE string DEFAULT 'idle';
+DEFINE FIELD IF NOT EXISTS created ON review_route DEFAULT time::now() VALUE $before OR time::now();
+DEFINE FIELD IF NOT EXISTS updated ON review_route DEFAULT time::now() VALUE time::now();
+
+DEFINE INDEX IF NOT EXISTS idx_review_route_notebook ON review_route COLUMNS notebook;
+DEFINE INDEX IF NOT EXISTS idx_review_route_source ON review_route COLUMNS source;

@@ -49,6 +49,7 @@ from api.routers import (
     virtual_classroom_knowledge,
     virtual_classroom_ocr,
     virtual_classroom_practice,
+    virtual_classroom_review,
 )
 from api.routers import commands as commands_router
 from open_notebook.database.async_migrate import AsyncMigrationManager
@@ -413,6 +414,7 @@ app.include_router(virtual_classroom.router, prefix="/api", tags=["virtual-class
 app.include_router(virtual_classroom_practice.router, prefix="/api", tags=["virtual-classroom-practice"])
 app.include_router(virtual_classroom_knowledge.router, prefix="/api", tags=["virtual-classroom-knowledge"])
 app.include_router(virtual_classroom_conversation.router, prefix="/api", tags=["virtual-classroom-conversation"])
+app.include_router(virtual_classroom_review.router, prefix="/api", tags=["virtual-classroom-review"])
 app.include_router(virtual_classroom_ocr.router, prefix="/api", tags=["virtual-classroom-ocr"])
 
 

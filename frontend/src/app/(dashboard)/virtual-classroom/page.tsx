@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label'
 import { useNotebooks } from '@/lib/hooks/use-notebooks'
 import { useNotebookSources } from '@/lib/hooks/use-sources'
 import { sourceChatApi } from '@/lib/api/source-chat'
-import { virtualClassroomApi, knowledgeMapApi, conversationApi } from '@/lib/api/virtual-classroom'
+import { virtualClassroomApi, knowledgeMapApi, conversationApi, reviewApi } from '@/lib/api/virtual-classroom'
 import type { KnowledgeMapData } from '@/lib/api/virtual-classroom'
 import {
   Chapter,
@@ -17,6 +17,7 @@ import {
   Mistake,
   QuizQuestion,
   QuizSubmitResponse,
+  ReviewRouteData,
 } from '@/lib/types/virtual-classroom'
 
 export default function VirtualClassroomPage() {
@@ -29,6 +30,8 @@ export default function VirtualClassroomPage() {
   const [knowledgePoints, setKnowledgePoints] = useState<KnowledgePoint[]>([])
   const [knowledgeMap, setKnowledgeMap] = useState<KnowledgeMapData | null>(null)
   const [generatingMap, setGeneratingMap] = useState(false)
+  const [reviewRoute, setReviewRoute] = useState<ReviewRouteData | null>(null)
+  const [generatingReview, setGeneratingReview] = useState(false)
   const [mistakes, setMistakes] = useState<Mistake[]>([])
   const [chatSessions, setChatSessions] = useState<{ id: string; title: string }[]>([])
   const [selectedChatSessionId, setSelectedChatSessionId] = useState('')
@@ -62,14 +65,18 @@ export default function VirtualClassroomPage() {
       virtualClassroomApi.listMistakes({ source_id: sourceId, notebook_id: notebookId || undefined }),
       sourceChatApi.listSessions(sourceId).catch(() => []),
       conversationApi.list({ source_id: sourceId, notebook_id: notebookId || undefined }).catch(() => []),
+      reviewApi.get({ source_id: sourceId, notebook_id: notebookId || undefined })
+        .then((res) => (res.data ? JSON.parse(res.data) : null))
+        .catch(() => null),
     ])
-      .then(([chs, kps, mis, sessions, notes]) => {
+      .then(([chs, kps, mis, sessions, notes, reviewData]) => {
         if (cancelled) return
         setChapters(chs)
         setKnowledgePoints(kps)
         setMistakes(mis)
         setChatSessions(sessions)
         setConversationNotes(notes)
+        setReviewRoute(reviewData)
         setSelectedChatSessionId((current) =>
           current && sessions.some((s) => s.id === current) ? current : (sessions[0]?.id ?? '')
         )
@@ -125,6 +132,22 @@ export default function VirtualClassroomPage() {
       console.error(error)
     } finally {
       setGeneratingMap(false)
+    }
+  }
+
+  const handleGenerateReviewRoute = async () => {
+    if (!sourceId && !notebookId) return
+    setGeneratingReview(true)
+    try {
+      const res = await reviewApi.generate({
+        notebook_id: notebookId || undefined,
+        source_id: sourceId || undefined,
+      })
+      setReviewRoute(JSON.parse(res.data || '{}'))
+    } catch (error) {
+      console.error(error)
+    } finally {
+      setGeneratingReview(false)
     }
   }
 
@@ -235,6 +258,7 @@ export default function VirtualClassroomPage() {
                   setChatSessions([])
                   setSelectedChatSessionId('')
                   setConversationNotes([])
+                  setReviewRoute(null)
                 }}
               >
                 {notebooks?.map((n) => (
@@ -254,6 +278,7 @@ export default function VirtualClassroomPage() {
                   setSourceId(e.target.value)
                   setSelectedChatSessionId('')
                   setConversationNotes([])
+                  setReviewRoute(null)
                 }}
               >
                 <option value="">请选择课件</option>
@@ -295,6 +320,48 @@ export default function VirtualClassroomPage() {
                   <p className="text-sm text-muted-foreground">暂无知识地图，先生成章节/知识点后再生成地图。</p>
                 )}
               </div>
+            </div>
+          )}
+
+
+          {/* Review Route */}
+          {(sourceId || notebookId) && (
+            <div className="rounded-lg border p-4">
+              <div className="flex items-center justify-between">
+                <h2 className="font-semibold">复习路线</h2>
+                <Button onClick={handleGenerateReviewRoute} disabled={generatingReview} variant="outline" size="sm">
+                  {generatingReview ? '生成中...' : '生成复习路线'}
+                </Button>
+              </div>
+              {reviewRoute ? (
+                <div className="mt-3 space-y-4">
+                  {reviewRoute.title && <p className="font-medium">{reviewRoute.title}</p>}
+                  {reviewRoute.overview && (
+                    <div className="rounded-md bg-muted p-3">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">俯瞰</p>
+                      <p className="mt-1 text-sm leading-relaxed">{reviewRoute.overview}</p>
+                    </div>
+                  )}
+                  {reviewRoute.stages?.map((stage, stageIndex) => (
+                    <div key={stage.stage_id || stageIndex} className="rounded-md border p-3">
+                      <div className="font-medium">{stage.stage_label}</div>
+                      {stage.why && <p className="mt-1 text-sm text-muted-foreground">→ {stage.why}</p>}
+                      {stage.drill && stage.drill.length > 0 && (
+                        <div className="mt-3 space-y-2">
+                          {stage.drill.map((item, itemIndex) => (
+                            <div key={itemIndex} className="rounded-md bg-muted/50 p-2 text-sm">
+                              <div className="font-medium">{item.title}</div>
+                              {item.summary && <p className="text-muted-foreground mt-0.5">{item.summary}</p>}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground mt-2">暂无复习路线，先生成知识地图后再生成。</p>
+              )}
             </div>
           )}
 

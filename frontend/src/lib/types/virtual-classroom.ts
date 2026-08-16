@@ -85,3 +85,28 @@ export interface ConversationNote {
   tags: string[]
   created?: string | null
 }
+
+export interface ReviewRouteData {
+  title?: string
+  overview?: string
+  stages?: Array<{
+    stage_id?: string
+    stage_label?: string
+    why?: string
+    drill?: Array<{
+      title?: string
+      summary?: string
+      knowledge_point_id?: string | null
+      conversation_note_ids?: string[]
+      mistake_ids?: string[]
+    }>
+  }>
+}
+
+export interface ReviewRouteResponse {
+  id: string
+  notebook?: string | null
+  source?: string | null
+  data: string
+  status: string
+}

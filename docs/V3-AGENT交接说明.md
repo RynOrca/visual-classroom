@@ -86,8 +86,10 @@ cd /d/Code/Working-on-it/v3-visualclassroom
 | 虚拟课堂后端模块 | `open_notebook/virtual_classroom/` |
 | PDF 处理模块 | `open_notebook/virtual_classroom/pdf.py` |
 | 对话整理服务 | `open_notebook/virtual_classroom/conversation.py` |
+| 复习路线服务 | `open_notebook/virtual_classroom/review.py` |
 | 虚拟课堂 API | `api/routers/virtual_classroom*.py` |
 | 对话整理 API | `api/routers/virtual_classroom_conversation.py` |
+| 复习路线 API | `api/routers/virtual_classroom_review.py` |
 | 前端页面 | `frontend/src/app/(dashboard)/virtual-classroom/page.tsx` |
 | 前端 API | `frontend/src/lib/api/virtual-classroom.ts` |
 | 前端类型 | `frontend/src/lib/types/virtual-classroom.ts` |
@@ -117,8 +119,11 @@ cd /d/Code/Working-on-it/v3-visualclassroom
    - 自动触发：source chat 每轮问答结束后后台自动整理
    - 自动关联知识点：优先匹配已有 `knowledge_point`，无匹配时自动创建并关联
    - 核心逻辑已抽到 `open_notebook/virtual_classroom/conversation.py`
-5. **复习路线**
-   - 基于知识地图生成“俯瞰 → 下钻”复习流程
+5. **复习路线**（已完成）
+   - `POST /api/virtual-classroom/review/generate`：基于知识地图 + 知识点 + 对话笔记 + 错题生成“俯瞰 → 下钻”复习流程
+   - `GET /api/virtual-classroom/review`：读取已生成的复习路线
+   - 新增 `review_route` 表（Migration 26）
+   - 前端“复习路线”区域：显示俯瞰总览 + 分阶段下钻卡片
 
 ## 8. 给其他 Agent 的硬性要求
 

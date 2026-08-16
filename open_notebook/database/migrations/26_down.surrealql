@@ -1,0 +1,3 @@
+-- Migration 26 rollback: remove review_route
+
+REMOVE TABLE IF EXISTS review_route;

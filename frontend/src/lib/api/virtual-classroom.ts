@@ -107,3 +107,22 @@ export const knowledgeMapApi = {
     return response.data
   },
 }
+
+export interface ReviewRouteResponse {
+  id: string
+  notebook?: string | null
+  source?: string | null
+  data: string
+  status: string
+}
+
+export const reviewApi = {
+  get: async (params?: { notebook_id?: string; source_id?: string }) => {
+    const response = await apiClient.get<ReviewRouteResponse>('/virtual-classroom/review', { params })
+    return response.data
+  },
+  generate: async (data: { notebook_id?: string; source_id?: string }) => {
+    const response = await apiClient.post<ReviewRouteResponse>('/virtual-classroom/review/generate', data)
+    return response.data
+  },
+}
