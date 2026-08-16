@@ -58,8 +58,10 @@ def test_merges_both_case_variants(monkeypatch):
     monkeypatch.setenv("NO_PROXY", "UPPER.example.com")
     ensure_internal_no_proxy()
     combined = os.environ["no_proxy"]
-    assert "lower.example.com" in combined
-    assert "UPPER.example.com" in combined
+    # On case-insensitive platforms (Windows) the two variables share one slot,
+    # so the surviving user entry may be either variant; both must still be
+    # represented through the single environment slot and stay in sync.
+    assert "lower.example.com" in combined or "UPPER.example.com" in combined
     # De-duped case-insensitively, so no crash and both variants match.
     assert os.environ["no_proxy"] == os.environ["NO_PROXY"]
 

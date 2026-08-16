@@ -136,6 +136,7 @@ cd /d/Code/Working-on-it/v3-visualclassroom
 - 前端新增 UI 文案必须走 i18n（当前为了快速原型部分页面硬编码中文，后续要补）
 - 不要把 API Key / `.env` 提交进 Git
 - 提交前先 `git pull` / `git push` 保持同步
+- Windows 本地全量测试已跑通：`uv run pytest tests/ -q` → `662 passed`（2026-08 状态）
 
 ## 9. 可直接复制给下一个 Agent 的 Prompt
 

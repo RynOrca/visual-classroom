@@ -50,7 +50,14 @@ def to_relative_audio_path(audio_path: Union[str, Path]) -> str:
     """
     raw = str(audio_path)
     if raw.startswith("file://"):
-        raw = unquote(urlparse(raw).path)
+        parsed = unquote(urlparse(raw).path)
+        # Windows file URIs commonly look like file:///C:/... and parse to
+        # /C:/...; convert them back to a native Windows path.
+        if len(parsed) >= 3 and parsed[0] == "/" and parsed[2] == ":":
+            parsed = parsed[1:]
+        elif len(parsed) >= 3 and parsed[0] == "/" and parsed[2] == "|":
+            parsed = parsed[1:].replace("|", ":", 1)
+        raw = parsed
     resolved = Path(os.path.realpath(raw))
     root = podcasts_root()
     if resolved == root or not resolved.is_relative_to(root):

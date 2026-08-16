@@ -109,5 +109,5 @@ class TestLegacyFieldsGone:
             import open_notebook.podcasts.migration  # noqa: F401
 
     def test_api_lifespan_no_longer_calls_podcast_migration(self):
-        source = Path("api/main.py").read_text()
+        source = Path("api/main.py").read_text(encoding="utf-8")
         assert "migrate_podcast_profiles" not in source
