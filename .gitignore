@@ -155,3 +155,7 @@ history.txt
 # V3 local dev
 tools/
 logs/
+
+# V3 local OCR models (large GGUF files, not meant for git)
+unlimited-ocr/
+*.gguf

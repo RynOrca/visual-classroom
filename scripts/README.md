@@ -1,5 +1,25 @@
 # Scripts Documentation
 
+## start-unlimited-ocr-server.sh
+
+Starts the local llama.cpp vision server used by UnlimitedOCR (scanned-PDF OCR).
+
+### Usage
+
+```bash
+# Start with default paths (D:\llama.cpp, ./unlimited-ocr, port 10000)
+./scripts/start-unlimited-ocr-server.sh
+
+# Customize paths/port
+LLAMA_CPP_DIR=/path/to/llama.cpp \
+UNLIMITED_OCR_MODEL_DIR=/path/to/models \
+UNLIMITED_OCR_PORT=10000 \
+./scripts/start-unlimited-ocr-server.sh
+```
+
+The script is idempotent: if `http://127.0.0.1:10000/v1/models` already
+responds, it does nothing.
+
 ## export_docs.py
 
 Consolidates markdown documentation files for use with ChatGPT or other platforms with file upload limits.

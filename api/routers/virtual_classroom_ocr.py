@@ -1,6 +1,6 @@
 """V3 virtual classroom OCR API."""
 
-from typing import Optional
+import asyncio
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -43,14 +43,14 @@ async def ocr_source(data: OcrRequest):
             detail="UNLIMITED_OCR_COMMAND is not configured. Set it in .env first.",
         )
 
-    text = run_unlimited_ocr(file_path)
+    text = await asyncio.to_thread(run_unlimited_ocr, file_path)
     if not text:
         raise HTTPException(status_code=500, detail="UnlimitedOCR returned no text")
 
     source.full_text = text
     await source.save()
     return OcrResponse(
-        source_id=source_id,
+        source_id=str(source.id or data.source_id),
         ocr_engine="unlimited_ocr",
         text_length=len(text),
         updated=True,

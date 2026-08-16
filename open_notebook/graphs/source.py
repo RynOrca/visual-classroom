@@ -1,5 +1,7 @@
+import asyncio
 import operator
 import os
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from content_core import ContentCoreConfig, extract_content
@@ -16,6 +18,11 @@ from open_notebook.domain.notebook import Asset, Source
 from open_notebook.domain.transformation import Transformation
 from open_notebook.graphs.transformation import graph as transform_graph
 from open_notebook.utils.runtime_capabilities import engine_runtime_missing
+from open_notebook.virtual_classroom.ocr import (
+    is_unlimited_ocr_available,
+    pdf_has_text_layer,
+    run_unlimited_ocr,
+)
 
 # Preferred languages for YouTube transcript selection. content-core's own
 # default is only ["en", "es", "pt"]; we keep the broader list Open Notebook has
@@ -72,8 +79,48 @@ def _usable_engine(engine: str, kind: str) -> str:
     return "auto"
 
 
+def _delete_source_file_if_requested(content_state: Dict[str, Any]) -> None:
+    """Remove the uploaded source file when content-core's old flag is set."""
+    if content_state.get("delete_source") and content_state.get("file_path"):
+        file_path = content_state["file_path"]
+        try:
+            os.unlink(file_path)
+        except FileNotFoundError:
+            logger.warning(f"File not found while trying to delete: {file_path}")
+        except Exception as e:
+            logger.warning(f"Failed to delete source file {file_path}: {e}")
+
+
 async def content_process(state: SourceState) -> dict:
     content_state: Dict[str, Any] = state["content_state"]
+    file_path = content_state.get("file_path")
+    ocr_attempted = False
+
+    # Scanned PDFs have no usable text layer. When UnlimitedOCR is configured,
+    # run it before content-core so the OCR result is written back to Source
+    # automatically during normal upload processing.
+    if (
+        file_path
+        and str(file_path).lower().endswith(".pdf")
+        and is_unlimited_ocr_available()
+        and not pdf_has_text_layer(file_path)
+    ):
+        ocr_attempted = True
+        logger.info(f"Detected scanned PDF {file_path}; running UnlimitedOCR")
+        ocr_text = await asyncio.to_thread(run_unlimited_ocr, file_path)
+        if ocr_text and ocr_text.strip():
+            _delete_source_file_if_requested(content_state)
+            return {
+                "extraction": ExtractionOutput(
+                    content=ocr_text.strip(),
+                    title=Path(file_path).stem,
+                    source_type="pdf",
+                    identified_type="pdf",
+                )
+            }
+        logger.warning(
+            "UnlimitedOCR returned no text; falling back to content-core extraction"
+        )
 
     # content-core 2.x takes engine/model overrides via ContentCoreConfig
     # (keyword-only), not inside the input dict.
@@ -164,6 +211,22 @@ async def content_process(state: SourceState) -> dict:
             "The URL or file may be unreachable, invalid, or in an unsupported format."
         )
 
+    # Fallback: content-core may not extract a scanned PDF even when a text
+    # layer check was inconclusive. Try UnlimitedOCR once before failing.
+    if (
+        not processed.content
+        or not processed.content.strip()
+    ) and file_path and str(file_path).lower().endswith(".pdf") and is_unlimited_ocr_available() and not ocr_attempted:
+        logger.info("content-core returned no text; trying UnlimitedOCR fallback")
+        ocr_text = await asyncio.to_thread(run_unlimited_ocr, file_path)
+        if ocr_text and ocr_text.strip():
+            processed = ExtractionOutput(
+                content=ocr_text.strip(),
+                title=processed.title or Path(file_path).stem,
+                source_type=processed.source_type or "pdf",
+                identified_type=processed.identified_type or "pdf",
+            )
+
     if not processed.content or not processed.content.strip():
         url = content_state.get("url") or ""
         if url and ("youtube.com" in url or "youtu.be" in url):
@@ -181,14 +244,7 @@ async def content_process(state: SourceState) -> dict:
     # content-core 2.x no longer deletes the uploaded source file after
     # extraction (the delete_source flag it used to honor is gone). Preserve the
     # previous auto-delete behavior on our side.
-    if content_state.get("delete_source") and content_state.get("file_path"):
-        file_path = content_state["file_path"]
-        try:
-            os.unlink(file_path)
-        except FileNotFoundError:
-            logger.warning(f"File not found while trying to delete: {file_path}")
-        except Exception as e:
-            logger.warning(f"Failed to delete source file {file_path}: {e}")
+    _delete_source_file_if_requested(content_state)
 
     return {"extraction": processed}
 
