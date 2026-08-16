@@ -88,6 +88,7 @@ cd /d/Code/Working-on-it/v3-visualclassroom
 | 前端页面 | `frontend/src/app/(dashboard)/virtual-classroom/page.tsx` |
 | 前端 API | `frontend/src/lib/api/virtual-classroom.ts` |
 | 前端类型 | `frontend/src/lib/types/virtual-classroom.ts` |
+| 知识地图可视化组件 | `frontend/src/components/virtual-classroom/KnowledgeMapFlow.tsx` |
 | 本地 OCR 脚本 | `scripts/unlimited_ocr_local.py` |
 | 本地 OCR 服务启动脚本 | `scripts/start-unlimited-ocr-server.sh` |
 
@@ -102,9 +103,9 @@ cd /d/Code/Working-on-it/v3-visualclassroom
    - `POST /api/virtual-classroom/ocr` 可用（已通过接口测试）
    - 扫描版 PDF 会在 source 处理时自动 OCR 并写回 `Source.full_text`
    - 可执行 `scripts/start-unlimited-ocr-server.sh` 幂等启动本地 OCR 服务
-3. **知识地图可视化**
-   - 当前是卡片展示，可升级为 React Flow 节点图
-   - 支持点击节点跳回课件/对话
+3. **知识地图可视化**（部分完成）
+   - 已升级为 React Flow 节点图：章节/stage 节点 + `bridgeToNext` 连线 + 可缩放/拖拽/小地图
+   - 待做：L2 框架级展开、L3 错题/提问热力节点、点击节点跳回课件/对话
 4. **对话整理 Agent**
    - 把问答按知识点/问题类型整理成知识卡片
    - 写入 `conversation_note`

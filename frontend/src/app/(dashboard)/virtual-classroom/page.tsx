@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
+import KnowledgeMapFlow from '@/components/virtual-classroom/KnowledgeMapFlow'
 import { AppShell } from '@/components/layout/AppShell'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useNotebooks } from '@/lib/hooks/use-notebooks'
 import { useNotebookSources } from '@/lib/hooks/use-sources'
@@ -38,11 +38,6 @@ export default function VirtualClassroomPage() {
   const [quizResult, setQuizResult] = useState<QuizSubmitResponse | null>(null)
   const [generatingQuiz, setGeneratingQuiz] = useState(false)
   const [submittingQuiz, setSubmittingQuiz] = useState(false)
-
-  const activeNotebook = useMemo(
-    () => notebooks?.find((n) => n.id === notebookId),
-    [notebooks, notebookId]
-  )
 
   useEffect(() => {
     if (!notebooks || notebooks.length === 0) return
@@ -259,34 +254,14 @@ export default function VirtualClassroomPage() {
                   {generatingMap ? '生成中...' : '生成知识地图'}
                 </Button>
               </div>
-              {knowledgeMap ? (
-                <div className="mt-3 space-y-4">
-                  {knowledgeMap.title && <p className="font-medium">{knowledgeMap.title}</p>}
-                  {knowledgeMap.storyline && (
-                    <p className="text-sm text-muted-foreground">{knowledgeMap.storyline}</p>
-                  )}
-                  {knowledgeMap.stages?.map((stage, idx) => (
-                    <div key={stage.id || idx} className="rounded-md border p-3">
-                      <div className="font-medium">{stage.label}</div>
-                      {stage.summary && <p className="text-sm text-muted-foreground mt-1">{stage.summary}</p>}
-                      {stage.bridgeToNext && (
-                        <p className="text-xs text-muted-foreground mt-1">→ {stage.bridgeToNext}</p>
-                      )}
-                      {stage.concepts && stage.concepts.length > 0 && (
-                        <div className="mt-2 flex flex-wrap gap-1">
-                          {stage.concepts.map((c, ci) => (
-                            <span key={ci} className="rounded-full bg-muted px-2 py-0.5 text-xs">
-                              {c.label}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-muted-foreground text-sm mt-2">暂无知识地图，先生成章节/知识点后再生成地图。</p>
-              )}
+              <div className="mt-3">
+                {knowledgeMap?.title && <p className="mb-2 font-medium">{knowledgeMap.title}</p>}
+                {knowledgeMap?.stages?.length ? (
+                  <KnowledgeMapFlow data={knowledgeMap} />
+                ) : (
+                  <p className="text-sm text-muted-foreground">暂无知识地图，先生成章节/知识点后再生成地图。</p>
+                )}
+              </div>
             </div>
           )}
 
