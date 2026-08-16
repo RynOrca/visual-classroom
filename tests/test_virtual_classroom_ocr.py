@@ -10,7 +10,7 @@ from PIL import Image, ImageDraw
 
 from api.routers.virtual_classroom_ocr import router as ocr_router
 from open_notebook.graphs.source import content_process
-from open_notebook.virtual_classroom.ocr import pdf_has_text_layer
+from open_notebook.virtual_classroom.pdf import pdf_has_text_layer
 
 
 def _make_scanned_pdf(path: Path) -> None:
@@ -47,7 +47,7 @@ async def test_content_process_uses_unlimited_ocr_for_scanned_pdf(tmp_path):
             "open_notebook.graphs.source.is_unlimited_ocr_available",
             return_value=True,
         ),
-        patch("open_notebook.graphs.source.pdf_has_text_layer", return_value=False),
+        patch("open_notebook.graphs.source.is_scanned_pdf", return_value=True),
         patch(
             "open_notebook.graphs.source.run_unlimited_ocr",
             return_value="OCR extracted text",

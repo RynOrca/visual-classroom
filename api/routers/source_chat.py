@@ -27,6 +27,10 @@ from open_notebook.utils.graph_utils import get_session_message_count
 
 router = APIRouter()
 
+# Keep strong references to auto-organize background tasks so they are not
+# garbage-collected before finishing.
+_background_tasks: set = set()
+
 
 # Request/Response models
 class CreateSourceChatSessionRequest(BaseModel):
@@ -394,6 +398,19 @@ async def stream_source_chat_response(
         # Send completion signal
         completion_event = {"type": "complete"}
         yield f"data: {json.dumps(completion_event)}\n\n"
+
+        # Automatically turn the finished Q&A into conversation notes in the
+        # background. Lazy import avoids a circular dependency at module load.
+        try:
+            from open_notebook.virtual_classroom.conversation import (
+                organize_chat_session,
+            )
+
+            task = asyncio.create_task(organize_chat_session(session_id))
+            _background_tasks.add(task)
+            task.add_done_callback(_background_tasks.discard)
+        except Exception as e:
+            logger.warning(f"Failed to schedule conversation note organization: {e}")
 
     except Exception as e:
         from open_notebook.utils.error_classifier import classify_error

@@ -9,7 +9,6 @@ import os
 import shlex
 import subprocess
 import sys
-from pathlib import Path
 from typing import Optional
 
 from loguru import logger
@@ -18,47 +17,6 @@ from loguru import logger
 def is_unlimited_ocr_available() -> bool:
     """Return True when the UnlimitedOCR command is configured."""
     return bool(os.environ.get("UNLIMITED_OCR_COMMAND", "").strip())
-
-
-def pdf_has_text_layer(pdf_path: str, min_chars: int = 20) -> bool:
-    """Return True when a PDF has a usable embedded text layer.
-
-    Scanned PDFs normally contain only images and little or no selectable
-    text.  We sample the first few pages to decide whether the UnlimitedOCR
-    fallback should be used.  If the PDF cannot be inspected (for example a
-    placeholder file in tests), it is treated as *not* scanned so the normal
-    content-core pipeline still runs.
-    """
-    if not pdf_path or not Path(pdf_path).exists():
-        return True
-    try:
-        import pypdfium2 as pdfium
-    except ImportError:
-        logger.warning("pypdfium2 is not installed; cannot detect scanned PDFs")
-        return True
-
-    try:
-        pdf = pdfium.PdfDocument(pdf_path)
-        try:
-            total_pages = len(pdf)
-            for page_index in range(min(total_pages, 5)):
-                page = pdf[page_index]
-                try:
-                    textpage = page.get_textpage()
-                    try:
-                        text = textpage.get_text_range() or ""
-                    finally:
-                        textpage.close()
-                    if len(text.strip()) >= min_chars:
-                        return True
-                finally:
-                    page.close()
-            return False
-        finally:
-            pdf.close()
-    except Exception as e:
-        logger.warning(f"Could not inspect PDF text layer: {e}")
-        return True
 
 
 def run_unlimited_ocr(pdf_path: str, timeout: int = 600) -> Optional[str]:

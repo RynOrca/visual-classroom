@@ -84,6 +84,8 @@ cd /d/Code/Working-on-it/v3-visualclassroom
 |---|---|
 | V3 方案 | `V3-虚拟课堂重构方案.md` |
 | 虚拟课堂后端模块 | `open_notebook/virtual_classroom/` |
+| PDF 处理模块 | `open_notebook/virtual_classroom/pdf.py` |
+| 对话整理服务 | `open_notebook/virtual_classroom/conversation.py` |
 | 虚拟课堂 API | `api/routers/virtual_classroom*.py` |
 | 对话整理 API | `api/routers/virtual_classroom_conversation.py` |
 | 前端页面 | `frontend/src/app/(dashboard)/virtual-classroom/page.tsx` |
@@ -103,15 +105,18 @@ cd /d/Code/Working-on-it/v3-visualclassroom
    - `UNLIMITED_OCR_COMMAND` 已在 `.env` 设置
    - `POST /api/virtual-classroom/ocr` 可用（已通过接口测试）
    - 扫描版 PDF 会在 source 处理时自动 OCR 并写回 `Source.full_text`
+   - PDF 检测/文本层/扫描判断已模块化到 `open_notebook/virtual_classroom/pdf.py`
    - 可执行 `scripts/start-unlimited-ocr-server.sh` 幂等启动本地 OCR 服务
 3. **知识地图可视化**（部分完成）
    - 已升级为 React Flow 节点图：章节/stage 节点 + `bridgeToNext` 连线 + 可缩放/拖拽/小地图
    - 待做：L2 框架级展开、L3 错题/提问热力节点、点击节点跳回课件/对话
-4. **对话整理 Agent**（已完成基础版）
+4. **对话整理 Agent**（已完成）
    - `POST /api/virtual-classroom/conversation-notes/organize`：读取会话 Q&A，LLM 整理为知识卡片并写入 `conversation_note`
    - `GET /api/virtual-classroom/conversation-notes`：列出知识卡片
    - 前端“对话整理”区域：选择课件会话 → 整理 → 查看卡片
-   - 待做：自动在问答结束后触发整理、更精确的知识点关联
+   - 自动触发：source chat 每轮问答结束后后台自动整理
+   - 自动关联知识点：优先匹配已有 `knowledge_point`，无匹配时自动创建并关联
+   - 核心逻辑已抽到 `open_notebook/virtual_classroom/conversation.py`
 5. **复习路线**
    - 基于知识地图生成“俯瞰 → 下钻”复习流程
 

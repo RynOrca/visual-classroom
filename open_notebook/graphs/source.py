@@ -20,9 +20,9 @@ from open_notebook.graphs.transformation import graph as transform_graph
 from open_notebook.utils.runtime_capabilities import engine_runtime_missing
 from open_notebook.virtual_classroom.ocr import (
     is_unlimited_ocr_available,
-    pdf_has_text_layer,
     run_unlimited_ocr,
 )
+from open_notebook.virtual_classroom.pdf import is_pdf_file, is_scanned_pdf
 
 # Preferred languages for YouTube transcript selection. content-core's own
 # default is only ["en", "es", "pt"]; we keep the broader list Open Notebook has
@@ -102,9 +102,9 @@ async def content_process(state: SourceState) -> dict:
     # automatically during normal upload processing.
     if (
         file_path
-        and str(file_path).lower().endswith(".pdf")
+        and is_pdf_file(file_path)
         and is_unlimited_ocr_available()
-        and not pdf_has_text_layer(file_path)
+        and is_scanned_pdf(file_path)
     ):
         ocr_attempted = True
         logger.info(f"Detected scanned PDF {file_path}; running UnlimitedOCR")
@@ -217,7 +217,7 @@ async def content_process(state: SourceState) -> dict:
     if (
         not processed.content
         or not processed.content.strip()
-    ) and file_path and str(file_path).lower().endswith(".pdf") and is_unlimited_ocr_available() and not ocr_attempted:
+    ) and file_path and is_pdf_file(file_path) and is_unlimited_ocr_available() and not ocr_attempted:
         logger.info("content-core returned no text; trying UnlimitedOCR fallback")
         ocr_text = await asyncio.to_thread(run_unlimited_ocr, file_path)
         if ocr_text and ocr_text.strip():

@@ -5,7 +5,8 @@ from unittest.mock import AsyncMock, patch
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from api.routers.virtual_classroom_conversation import _extract_qa_pairs, router
+from api.routers.virtual_classroom_conversation import router
+from open_notebook.virtual_classroom.conversation import extract_qa_pairs
 
 
 class _FakeMessage:
@@ -23,7 +24,7 @@ def test_extract_qa_pairs_pairs_human_with_next_ai():
         _FakeMessage("ai", "AE combines encryption and MAC."),
     ]
 
-    assert _extract_qa_pairs(messages) == [
+    assert extract_qa_pairs(messages) == [
         ("What is a MAC?", "A MAC is ..."),
         ("What is AE?", "AE combines encryption and MAC."),
     ]
@@ -46,46 +47,18 @@ def test_organize_conversation_notes_endpoint():
             self.tags = kwargs.get("tags")
             self.created = None
 
-        async def save(self):
-            return None
+    fake_note = FakeNote(
+        chat_session="chat_session:1",
+        source="source:1",
+        question="What is X?",
+        answer="X is ...",
+        note_type="definition",
+        tags=["x"],
+    )
 
-    with (
-        patch(
-            "api.routers.virtual_classroom_conversation._resolve_session",
-            new=AsyncMock(
-                return_value=(
-                    "chat_session:1",
-                    None,
-                    "source:1",
-                    None,
-                    [_FakeMessage("human", "q"), _FakeMessage("ai", "a")],
-                )
-            ),
-        ),
-        patch(
-            "api.routers.virtual_classroom_conversation._delete_existing_notes",
-            new=AsyncMock(),
-        ),
-        patch(
-            "api.routers.virtual_classroom_conversation._organize_pair",
-            new=AsyncMock(
-                return_value={
-                    "question": "What is X?",
-                    "answer": "X is ...",
-                    "note_type": "definition",
-                    "tags": ["x"],
-                    "knowledge_point_title": None,
-                }
-            ),
-        ),
-        patch(
-            "api.routers.virtual_classroom_conversation._match_knowledge_point",
-            new=AsyncMock(return_value=None),
-        ),
-        patch(
-            "api.routers.virtual_classroom_conversation.ConversationNote",
-            FakeNote,
-        ),
+    with patch(
+        "api.routers.virtual_classroom_conversation.organize_chat_session",
+        new=AsyncMock(return_value=[fake_note]),
     ):
         client = TestClient(app)
         response = client.post(
