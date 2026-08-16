@@ -4,11 +4,14 @@ These routes are intentionally small and focused on the classroom-specific
 data model: chapters and knowledge points first, then mistakes/quiz later.
 """
 
+import json
 from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
+from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel
 
+from open_notebook.ai.provision import provision_langchain_model
 from open_notebook.database.repository import ensure_record_id, repo_query
 from open_notebook.domain.notebook import Notebook, Source
 from open_notebook.exceptions import NotFoundError
@@ -51,6 +54,12 @@ class ChapterResponse(BaseModel):
     summary: Optional[str] = None
     page_start: Optional[int] = None
     page_end: Optional[int] = None
+
+
+class ExtractChaptersRequest(BaseModel):
+    source_id: str
+    notebook_id: Optional[str] = None
+
 
 
 class KnowledgePointCreate(BaseModel):
@@ -126,6 +135,66 @@ async def _verify_notebook(notebook_id: Optional[str]) -> None:
     notebook = await Notebook.get(notebook_id)
     if not notebook:
         raise HTTPException(status_code=404, detail="Notebook not found")
+
+
+@router.post("/virtual-classroom/extract-chapters", response_model=List[ChapterResponse])
+async def extract_chapters(data: ExtractChaptersRequest):
+    """Use the configured LLM to split a source into ordered chapters."""
+    await _verify_source(data.source_id)
+    await _verify_notebook(data.notebook_id)
+
+    source = await Source.get(data.source_id)
+    if not source or not source.full_text:
+        raise HTTPException(status_code=400, detail="Source has no text content")
+
+    system_prompt = SystemMessage(
+        content=(
+            "你是一个课件章节分析助手。请根据课件全文，将其拆分为逻辑章节。\n"
+            "要求：\n"
+            "1. 章节数量 2-10 个，按课件实际结构拆分\n"
+            "2. 每个章节包含 title（简短）、summary（一句话）、order_index（从1开始）、page_start、page_end（如无法判断可给 null）\n"
+            "3. 只输出 JSON，不要 Markdown，不要额外文字\n"
+            "JSON 格式：\n"
+            '{"chapters": [{"title": "章节标题", "summary": "一句话", "order_index": 1, "page_start": 1, "page_end": 3}]}'
+        )
+    )
+    human_message = HumanMessage(content=f"课件全文：\n\n{source.full_text[:12000]}")
+
+    chain = await provision_langchain_model(
+        str([system_prompt, human_message]),
+        None,
+        "chat",
+        max_tokens=4096,
+    )
+    response = await chain.ainvoke([system_prompt, human_message])
+    raw = response.content if isinstance(response.content, str) else str(response.content)
+    raw = raw.strip()
+    if raw.startswith("```"):
+        raw = raw.strip("`")
+        if raw.startswith("json"):
+            raw = raw[4:].strip()
+
+    try:
+        parsed = json.loads(raw)
+        chapters = parsed.get("chapters", [])
+    except Exception:
+        raise HTTPException(status_code=500, detail=f"Failed to parse LLM chapter output: {raw[:200]}")
+
+    saved = []
+    for idx, ch in enumerate(chapters):
+        chapter = Chapter(
+            title=str(ch.get("title", f"第{idx + 1}章")).strip(),
+            source=data.source_id,
+            notebook=data.notebook_id,
+            order_index=int(ch.get("order_index", idx + 1)),
+            summary=ch.get("summary"),
+            page_start=ch.get("page_start"),
+            page_end=ch.get("page_end"),
+        )
+        await chapter.save()
+        saved.append(_chapter_response(chapter))
+    return saved
+
 
 
 # ---------- Chapters ----------
