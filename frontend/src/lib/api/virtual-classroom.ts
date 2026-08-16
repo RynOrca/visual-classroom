@@ -64,3 +64,34 @@ export const virtualClassroomApi = {
     return response.data
   },
 }
+
+export interface KnowledgeMapData {
+  title?: string
+  storyline?: string
+  stages?: Array<{
+    id?: string
+    label?: string
+    summary?: string
+    bridgeToNext?: string
+    concepts?: Array<{ label?: string; brief?: string }>
+  }>
+}
+
+export interface KnowledgeMapResponse {
+  id: string
+  notebook?: string | null
+  source?: string | null
+  data: string
+  status: string
+}
+
+export const knowledgeMapApi = {
+  get: async (params?: { notebook_id?: string; source_id?: string }) => {
+    const response = await apiClient.get<KnowledgeMapResponse>('/virtual-classroom/knowledge-map', { params })
+    return response.data
+  },
+  generate: async (data: { notebook_id?: string; source_id?: string }) => {
+    const response = await apiClient.post<KnowledgeMapResponse>('/virtual-classroom/knowledge-map/generate', data)
+    return response.data
+  },
+}

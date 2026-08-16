@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useNotebooks } from '@/lib/hooks/use-notebooks'
 import { useNotebookSources } from '@/lib/hooks/use-sources'
-import { virtualClassroomApi } from '@/lib/api/virtual-classroom'
+import { virtualClassroomApi, knowledgeMapApi } from '@/lib/api/virtual-classroom'
+import type { KnowledgeMapData } from '@/lib/api/virtual-classroom'
 import {
   Chapter,
   KnowledgePoint,
@@ -24,6 +25,8 @@ export default function VirtualClassroomPage() {
   const { sources } = useNotebookSources(notebookId || '')
   const [chapters, setChapters] = useState<Chapter[]>([])
   const [knowledgePoints, setKnowledgePoints] = useState<KnowledgePoint[]>([])
+  const [knowledgeMap, setKnowledgeMap] = useState<KnowledgeMapData | null>(null)
+  const [generatingMap, setGeneratingMap] = useState(false)
   const [mistakes, setMistakes] = useState<Mistake[]>([])
 
   const [extractingChapters, setExtractingChapters] = useState(false)
@@ -100,6 +103,23 @@ export default function VirtualClassroomPage() {
       setExtractingKps(false)
     }
   }
+
+  const handleGenerateKnowledgeMap = async () => {
+    if (!sourceId && !notebookId) return
+    setGeneratingMap(true)
+    try {
+      const res = await knowledgeMapApi.generate({
+        notebook_id: notebookId || undefined,
+        source_id: sourceId || undefined,
+      })
+      setKnowledgeMap(JSON.parse(res.data || '{}'))
+    } catch (error) {
+      console.error(error)
+    } finally {
+      setGeneratingMap(false)
+    }
+  }
+
 
   const handleGenerateQuiz = async () => {
     if (!sourceId) return
@@ -229,6 +249,47 @@ export default function VirtualClassroomPage() {
               </Button>
             </div>
           )}
+
+          {/* Knowledge Map */}
+          {(sourceId || notebookId) && (
+            <div className="rounded-lg border p-4">
+              <div className="flex items-center justify-between">
+                <h2 className="font-semibold">知识地图</h2>
+                <Button onClick={handleGenerateKnowledgeMap} disabled={generatingMap} variant="outline" size="sm">
+                  {generatingMap ? '生成中...' : '生成知识地图'}
+                </Button>
+              </div>
+              {knowledgeMap ? (
+                <div className="mt-3 space-y-4">
+                  {knowledgeMap.title && <p className="font-medium">{knowledgeMap.title}</p>}
+                  {knowledgeMap.storyline && (
+                    <p className="text-sm text-muted-foreground">{knowledgeMap.storyline}</p>
+                  )}
+                  {knowledgeMap.stages?.map((stage, idx) => (
+                    <div key={stage.id || idx} className="rounded-md border p-3">
+                      <div className="font-medium">{stage.label}</div>
+                      {stage.summary && <p className="text-sm text-muted-foreground mt-1">{stage.summary}</p>}
+                      {stage.bridgeToNext && (
+                        <p className="text-xs text-muted-foreground mt-1">→ {stage.bridgeToNext}</p>
+                      )}
+                      {stage.concepts && stage.concepts.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {stage.concepts.map((c, ci) => (
+                            <span key={ci} className="rounded-full bg-muted px-2 py-0.5 text-xs">
+                              {c.label}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-muted-foreground text-sm mt-2">暂无知识地图，先生成章节/知识点后再生成地图。</p>
+              )}
+            </div>
+          )}
+
 
           {/* Chapters & Knowledge Points */}
           <div className="grid gap-6 lg:grid-cols-2">

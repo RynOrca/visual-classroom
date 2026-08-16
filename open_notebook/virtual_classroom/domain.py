@@ -160,3 +160,27 @@ class ConversationNote(ObjectModel):
             if data.get(key):
                 data[key] = _ensure_record(data[key])
         return data
+
+
+class KnowledgeMap(ObjectModel):
+    table_name: ClassVar[str] = "knowledge_map"
+    notebook: Optional[str] = None
+    source: Optional[str] = None
+    data: str = "{}"
+    status: str = "idle"
+
+    @field_validator("notebook", "source", mode="before")
+    @classmethod
+    def normalize_record_fields(cls, value):
+        if value is None:
+            return None
+        if isinstance(value, RecordID):
+            return str(value)
+        return value
+
+    def _prepare_save_data(self) -> Dict[str, Any]:
+        data = super()._prepare_save_data()
+        for key in ("notebook", "source"):
+            if data.get(key):
+                data[key] = _ensure_record(data[key])
+        return data

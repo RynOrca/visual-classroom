@@ -1,0 +1,2 @@
+-- Migration 25 rollback: remove knowledge map table
+REMOVE TABLE IF EXISTS knowledge_map;

@@ -1,0 +1,12 @@
+-- Migration 25: V3 knowledge map storage
+
+DEFINE TABLE IF NOT EXISTS knowledge_map SCHEMAFULL;
+DEFINE FIELD IF NOT EXISTS notebook ON TABLE knowledge_map TYPE option<record<notebook>>;
+DEFINE FIELD IF NOT EXISTS source ON TABLE knowledge_map TYPE option<record<source>>;
+DEFINE FIELD IF NOT EXISTS data ON TABLE knowledge_map TYPE string;
+DEFINE FIELD IF NOT EXISTS status ON TABLE knowledge_map TYPE string DEFAULT 'idle';
+DEFINE FIELD IF NOT EXISTS created ON knowledge_map DEFAULT time::now() VALUE $before OR time::now();
+DEFINE FIELD IF NOT EXISTS updated ON knowledge_map DEFAULT time::now() VALUE time::now();
+
+DEFINE INDEX IF NOT EXISTS idx_km_notebook ON TABLE knowledge_map COLUMNS notebook;
+DEFINE INDEX IF NOT EXISTS idx_km_source ON TABLE knowledge_map COLUMNS source;
