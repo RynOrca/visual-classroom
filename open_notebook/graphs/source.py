@@ -93,7 +93,8 @@ def _delete_source_file_if_requested(content_state: Dict[str, Any]) -> None:
 
 async def content_process(state: SourceState) -> dict:
     content_state: Dict[str, Any] = state["content_state"]
-    file_path = content_state.get("file_path")
+    raw_file_path = content_state.get("file_path")
+    file_path = str(raw_file_path) if raw_file_path else None
     ocr_attempted = False
 
     # Scanned PDFs have no usable text layer. When UnlimitedOCR is configured,
