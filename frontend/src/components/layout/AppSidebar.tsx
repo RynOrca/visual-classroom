@@ -40,6 +40,7 @@ import {
   Plus,
   Wrench,
   Command,
+  GraduationCap,
 } from 'lucide-react'
 
 const getNavigation = (t: TFunction) => [
@@ -53,6 +54,7 @@ const getNavigation = (t: TFunction) => [
     title: t('navigation.process'),
     items: [
       { name: t('navigation.notebooks'), href: '/notebooks', icon: Book, iconClass: 'text-teal' },
+        { name: 'Virtual Classroom', href: '/virtual-classroom', icon: GraduationCap, iconClass: 'text-gold' },
       { name: t('navigation.askAndSearch'), href: '/search', icon: Search, iconClass: undefined },
     ],
   },
