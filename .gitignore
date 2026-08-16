@@ -151,3 +151,7 @@ docker-compose.override.yml
 # Local QA/debug artifacts
 screenshot-*.png
 history.txt
+
+# V3 local dev
+tools/
+logs/
