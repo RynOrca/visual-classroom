@@ -61,6 +61,13 @@ class ExtractChaptersRequest(BaseModel):
     notebook_id: Optional[str] = None
 
 
+class ExtractKnowledgePointsRequest(BaseModel):
+    source_id: str
+    notebook_id: Optional[str] = None
+    chapter_id: Optional[str] = None
+
+
+
 
 class KnowledgePointCreate(BaseModel):
     title: str
@@ -194,6 +201,66 @@ async def extract_chapters(data: ExtractChaptersRequest):
         await chapter.save()
         saved.append(_chapter_response(chapter))
     return saved
+
+
+@router.post("/virtual-classroom/extract-knowledge-points", response_model=List[KnowledgePointResponse])
+async def extract_knowledge_points(data: ExtractKnowledgePointsRequest):
+    """Use the configured LLM to extract knowledge points from a source (optionally within a chapter)."""
+    await _verify_source(data.source_id)
+    await _verify_notebook(data.notebook_id)
+
+    source = await Source.get(data.source_id)
+    if not source or not source.full_text:
+        raise HTTPException(status_code=400, detail="Source has no text content")
+
+    system_prompt = SystemMessage(
+        content=(
+            "你是一个课件知识点提取助手。请根据课件内容提取核心知识点。\n"
+            "要求：\n"
+            "1. 提取 3-10 个知识点\n"
+            "2. 每个知识点包含 title（简短）、summary（一句话）、page_number（如能判断）、tags（2-5个标签）\n"
+            "3. 只输出 JSON，不要 Markdown，不要额外文字\n"
+            "JSON 格式：\n"
+            '{"knowledge_points": [{"title": "知识点", "summary": "一句话", "page_number": 1, "tags": ["标签1", "标签2"]}]}'
+        )
+    )
+    human_message = HumanMessage(content=f"课件全文：\n\n{source.full_text[:12000]}")
+
+    chain = await provision_langchain_model(
+        str([system_prompt, human_message]),
+        None,
+        "chat",
+        max_tokens=4096,
+    )
+    response = await chain.ainvoke([system_prompt, human_message])
+    raw = response.content if isinstance(response.content, str) else str(response.content)
+    raw = raw.strip()
+    if raw.startswith("```"):
+        raw = raw.strip("`")
+        if raw.startswith("json"):
+            raw = raw[4:].strip()
+
+    try:
+        parsed = json.loads(raw)
+        points = parsed.get("knowledge_points", [])
+    except Exception:
+        raise HTTPException(status_code=500, detail=f"Failed to parse LLM knowledge point output: {raw[:200]}")
+
+    saved = []
+    for item in points:
+        kp = KnowledgePoint(
+            title=str(item.get("title", "未命名知识点")).strip(),
+            summary=item.get("summary"),
+            source=data.source_id,
+            chapter=data.chapter_id,
+            notebook=data.notebook_id,
+            page_number=item.get("page_number"),
+            tags=item.get("tags") or [],
+        )
+        await kp.save()
+        saved.append(_kp_response(kp))
+    return saved
+
 
 
 
