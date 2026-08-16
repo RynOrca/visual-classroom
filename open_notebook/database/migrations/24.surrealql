@@ -1,0 +1,74 @@
+-- Migration 24: V3 virtual classroom core tables
+-- chapter / knowledge_point / mistake_book / quiz_session / conversation_note
+
+DEFINE TABLE IF NOT EXISTS chapter SCHEMAFULL;
+DEFINE FIELD IF NOT EXISTS title ON TABLE chapter TYPE string;
+DEFINE FIELD IF NOT EXISTS source ON TABLE chapter TYPE record<source>;
+DEFINE FIELD IF NOT EXISTS notebook ON TABLE chapter TYPE option<record<notebook>>;
+DEFINE FIELD IF NOT EXISTS order_index ON TABLE chapter TYPE int;
+DEFINE FIELD IF NOT EXISTS summary ON TABLE chapter TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS page_start ON TABLE chapter TYPE option<int>;
+DEFINE FIELD IF NOT EXISTS page_end ON TABLE chapter TYPE option<int>;
+DEFINE FIELD IF NOT EXISTS created ON chapter DEFAULT time::now() VALUE $before OR time::now();
+DEFINE FIELD IF NOT EXISTS updated ON chapter DEFAULT time::now() VALUE time::now();
+
+DEFINE INDEX IF NOT EXISTS idx_chapter_source ON TABLE chapter COLUMNS source;
+DEFINE INDEX IF NOT EXISTS idx_chapter_notebook ON TABLE chapter COLUMNS notebook;
+
+DEFINE TABLE IF NOT EXISTS knowledge_point SCHEMAFULL;
+DEFINE FIELD IF NOT EXISTS title ON TABLE knowledge_point TYPE string;
+DEFINE FIELD IF NOT EXISTS summary ON TABLE knowledge_point TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS source ON TABLE knowledge_point TYPE record<source>;
+DEFINE FIELD IF NOT EXISTS chapter ON TABLE knowledge_point TYPE option<record<chapter>>;
+DEFINE FIELD IF NOT EXISTS notebook ON TABLE knowledge_point TYPE option<record<notebook>>;
+DEFINE FIELD IF NOT EXISTS page_number ON TABLE knowledge_point TYPE option<int>;
+DEFINE FIELD IF NOT EXISTS tags ON TABLE knowledge_point TYPE option<array<string>>;
+DEFINE FIELD IF NOT EXISTS hotness ON TABLE knowledge_point TYPE option<number> DEFAULT 0;
+DEFINE FIELD IF NOT EXISTS created ON knowledge_point DEFAULT time::now() VALUE $before OR time::now();
+DEFINE FIELD IF NOT EXISTS updated ON knowledge_point DEFAULT time::now() VALUE time::now();
+
+DEFINE INDEX IF NOT EXISTS idx_kp_source ON TABLE knowledge_point COLUMNS source;
+DEFINE INDEX IF NOT EXISTS idx_kp_chapter ON TABLE knowledge_point COLUMNS chapter;
+DEFINE INDEX IF NOT EXISTS idx_kp_notebook ON TABLE knowledge_point COLUMNS notebook;
+
+DEFINE TABLE IF NOT EXISTS mistake_book SCHEMAFULL;
+DEFINE FIELD IF NOT EXISTS source ON TABLE mistake_book TYPE record<source>;
+DEFINE FIELD IF NOT EXISTS notebook ON TABLE mistake_book TYPE option<record<notebook>>;
+DEFINE FIELD IF NOT EXISTS knowledge_point ON TABLE mistake_book TYPE option<record<knowledge_point>>;
+DEFINE FIELD IF NOT EXISTS page_number ON TABLE mistake_book TYPE option<int>;
+DEFINE FIELD IF NOT EXISTS quiz_type ON TABLE mistake_book TYPE string DEFAULT 'single_choice';
+DEFINE FIELD IF NOT EXISTS question ON TABLE mistake_book TYPE string;
+DEFINE FIELD IF NOT EXISTS options ON TABLE mistake_book TYPE option<array<string>>;
+DEFINE FIELD IF NOT EXISTS correct_answer ON TABLE mistake_book TYPE string;
+DEFINE FIELD IF NOT EXISTS user_answer ON TABLE mistake_book TYPE string;
+DEFINE FIELD IF NOT EXISTS is_correct ON TABLE mistake_book TYPE bool DEFAULT false;
+DEFINE FIELD IF NOT EXISTS tags ON TABLE mistake_book TYPE option<array<string>>;
+DEFINE FIELD IF NOT EXISTS mastered_at ON TABLE mistake_book TYPE option<datetime>;
+DEFINE FIELD IF NOT EXISTS created ON mistake_book DEFAULT time::now() VALUE $before OR time::now();
+
+DEFINE INDEX IF NOT EXISTS idx_mistake_source ON TABLE mistake_book COLUMNS source;
+DEFINE INDEX IF NOT EXISTS idx_mistake_notebook ON TABLE mistake_book COLUMNS notebook;
+DEFINE INDEX IF NOT EXISTS idx_mistake_kp ON TABLE mistake_book COLUMNS knowledge_point;
+
+DEFINE TABLE IF NOT EXISTS quiz_session SCHEMAFULL;
+DEFINE FIELD IF NOT EXISTS notebook ON TABLE quiz_session TYPE option<record<notebook>>;
+DEFINE FIELD IF NOT EXISTS source ON TABLE quiz_session TYPE option<record<source>>;
+DEFINE FIELD IF NOT EXISTS total_questions ON TABLE quiz_session TYPE int;
+DEFINE FIELD IF NOT EXISTS correct_count ON TABLE quiz_session TYPE int DEFAULT 0;
+DEFINE FIELD IF NOT EXISTS score ON TABLE quiz_session TYPE number DEFAULT 0;
+DEFINE FIELD IF NOT EXISTS details ON TABLE quiz_session TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS created ON quiz_session DEFAULT time::now() VALUE $before OR time::now();
+
+DEFINE TABLE IF NOT EXISTS conversation_note SCHEMAFULL;
+DEFINE FIELD IF NOT EXISTS chat_session ON TABLE conversation_note TYPE option<record<chat_session>>;
+DEFINE FIELD IF NOT EXISTS source ON TABLE conversation_note TYPE option<record<source>>;
+DEFINE FIELD IF NOT EXISTS notebook ON TABLE conversation_note TYPE option<record<notebook>>;
+DEFINE FIELD IF NOT EXISTS knowledge_point ON TABLE conversation_note TYPE option<record<knowledge_point>>;
+DEFINE FIELD IF NOT EXISTS question ON TABLE conversation_note TYPE string;
+DEFINE FIELD IF NOT EXISTS answer ON TABLE conversation_note TYPE string;
+DEFINE FIELD IF NOT EXISTS note_type ON TABLE conversation_note TYPE string DEFAULT 'qa';
+DEFINE FIELD IF NOT EXISTS tags ON TABLE conversation_note TYPE option<array<string>>;
+DEFINE FIELD IF NOT EXISTS created ON conversation_note DEFAULT time::now() VALUE $before OR time::now();
+
+DEFINE INDEX IF NOT EXISTS idx_cn_chat ON TABLE conversation_note COLUMNS chat_session;
+DEFINE INDEX IF NOT EXISTS idx_cn_kp ON TABLE conversation_note COLUMNS knowledge_point;

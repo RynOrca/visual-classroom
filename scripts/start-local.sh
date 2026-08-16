@@ -28,7 +28,11 @@ echo $! > logs/worker.pid
 echo "    PID $(cat logs/worker.pid)"
 
 echo "==> Starting frontend (port 3000)"
-(cd frontend && NEXT_TELEMETRY_DISABLED=1 nohup npm run dev > ../logs/frontend.log 2>&1 & echo $! > ../logs/frontend.pid)
+(
+  cd frontend
+  NEXT_TELEMETRY_DISABLED=1 nohup npm run dev > "$ROOT/logs/frontend.log" 2>&1 &
+  echo $! > "$ROOT/logs/frontend.pid"
+)
 echo "    PID $(cat logs/frontend.pid)"
 
 echo ""

@@ -1,0 +1,7 @@
+-- Migration 24 rollback: remove V3 virtual classroom core tables
+
+REMOVE TABLE IF EXISTS conversation_note;
+REMOVE TABLE IF EXISTS quiz_session;
+REMOVE TABLE IF EXISTS mistake_book;
+REMOVE TABLE IF EXISTS knowledge_point;
+REMOVE TABLE IF EXISTS chapter;
